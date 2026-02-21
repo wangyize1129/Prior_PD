@@ -57,6 +57,23 @@ class Hander:
         
         return sqrt_alpha_t * x_0 + sqrt_one_minus_alpha_t * noise, noise
     
+    def p_sample(self, x_t: torch.Tensor, t: torch.Tensor, 
+                y: torch.Tensor) -> torch.Tensor:
+        t_input = t.float().unsqueeze(1) / self.num_steps
+        noise_pred = self.model(x_t, t_input, y)
+        
+        alpha_t = self.alphas[t].view(-1, 1, 1)
+        beta_t = self.betas[t].view(-1, 1, 1)
+        sqrt_one_minus_alpha_cumprod_t = self.sqrt_one_minus_alphas_cumprod[t].view(-1, 1, 1)
+        
+        sqrt_recip_alpha_t = 1 / torch.sqrt(alpha_t)
+        model_mean = sqrt_recip_alpha_t * (x_t - beta_t / sqrt_one_minus_alpha_cumprod_t * noise_pred)
+        
+
+        if t[0] > 0:
+            noise = torch.randn_like(x_t)
+            return model_mean + torch.sqrt(beta_t) * noise
+        return model_mean
     
     def decompose_and_concat(self, signal: torch.Tensor) -> torch.Tensor:
 
